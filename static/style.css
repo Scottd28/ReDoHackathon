@@ -1,7 +1,7 @@
 body {
     font-family: "Courier New", Courier, monospace;
-    background-color: #000000; /* black background */
-    color: #00FF00; /* bright green text */
+    background-color: #000000;
+    color: #00FF00;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -9,27 +9,36 @@ body {
     margin: 0;
 }
 
-.chat-container {
-    width: 500px;
-    background-color: #000000; /* same black background */
+#intro-screen, #chat-screen {
+    width: 600px;
+    background-color: #000000;
     border: 2px solid #00FF00;
     border-radius: 5px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    padding: 10px;
+}
+
+#chat-screen {
+    display: none;
 }
 
 #chat-box {
-    height: 400px;
+    flex: 1;
     overflow-y: auto;
     margin-bottom: 10px;
     border: 1px solid #00FF00;
     padding: 5px;
-    white-space: pre-wrap; /* keeps text formatting */
+    white-space: pre-wrap;
 }
 
 .message {
     margin: 5px 0;
+}
+
+#input-row {
+    display: flex;
+    margin-top: 10px;
 }
 
 #user-input {
@@ -39,6 +48,7 @@ body {
     background-color: #000000;
     color: #00FF00;
     border: 1px solid #00FF00;
+    caret-color: #00FF00;
 }
 
 button {
@@ -51,4 +61,48 @@ button {
 
 button:hover {
     background-color: #003300;
+}
+
+.cursor {
+    display: inline-block;
+    width: 10px;
+    background-color: #00FF00;
+    animation: blink 1s step-start infinite;
+    margin-left: 2px;
+}
+
+@keyframes blink {
+    50% { background-color: transparent; }
+}
+
+.center {
+    text-align: center;
+}
+
+/* ✅ HUMAN LIKELIHOOD BAR */
+#likelihood-container {
+    display: flex;
+    align-items: center;
+    margin: 8px 0;
+    gap: 10px;
+}
+
+#likelihood-bar {
+    flex: 1;
+    height: 20px;
+    border: 1px solid #00FF00;
+    background-color: black;
+    position: relative;
+}
+
+#likelihood-fill {
+    height: 100%;
+    width: 0%;
+    background-color: #00FF00;
+    transition: width 0.5s ease;
+}
+
+#likelihood-percent {
+    width: 50px;
+    text-align: right;
 }
