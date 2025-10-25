@@ -1,58 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Chatbot</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-    <div class="chat-container">
-        <div id="chat-box"></div>
-        <input type="text" id="user-input" placeholder="Type a message..." autofocus>
-        <button onclick="sendMessage()">Send</button>
-    </div>
-
-    <script>
-        async function sendMessage() {
-            const input = document.getElementById("user-input");
-            const message = input.value;
-            if (!message) return;
-
-            appendMessage("You", message);
-            input.value = "";
-
-            const response = await fetch("/chat", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({message})
-            });
-
-            const data = await response.json();
-            appendMessage("Chatbot", data.reply);
-        }
-
-    function appendMessage(sender, text) {
-        const chatBox = document.getElementById("chat-box");
-        const msgDiv = document.createElement("div");
-        msgDiv.className = "message";
-        chatBox.appendChild(msgDiv);
-
-        let i = 0;
-        const typeWriter = () => {
-            if (i < text.length) {
-                msgDiv.innerHTML = `<strong>${sender}:</strong> ${text.slice(0, i + 1)}`;
-                i++;
-                setTimeout(typeWriter, 20); // 20ms per character
-            }
-        };
-        typeWriter();
-        chatBox.scrollTop = chatBox.scrollHeight;
+<meta charset="UTF-8">
+<title>Retro Terminal Chatbot</title>
+<link rel="stylesheet" href="/static/style.css">
+<style>
+    body {
+        font-family: "Courier New", Courier, monospace;
+        background-color: #000000;
+        color: #00FF00;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
     }
 
+    #intro-screen, #chat-screen {
+        width: 600px;
+        background-color: #000000;
+        border: 2px solid #00FF00;
+        border-radius: 5px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+    }
 
-        document.getElementById("user-input").addEventListener("keypress", function(e) {
-            if (e.key === "Enter") sendMessage();
+    #chat-screen {
+        display: none; /* hidden initially */
+    }
+
+    #chat-box {
+        height: 400px;
+        overflow-y: auto;
+        margin-bottom: 10px;
+        border: 1px solid #00FF00;
+        padding: 5px;
+        white-space: pre-wrap;
+    }
+
+    .message {
+        margin: 5px 0;
+    }
+
+    #user-input {
+        flex: 1;
+        padding: 8px;
+        margin-right: 5px;
+        background-color: #000000;
+        color: #00FF00;
+        border: 1px solid #00FF00;
+        caret-color: #00FF00;
+    }
+
+    button {
+        background-color: #000000;
+        color: #00FF00;
+        border: 1px solid #00FF00;
+        padding: 5px 10px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background-color: #003300;
+    }
+
+    .cursor {
+        display: inline-block;
+        width: 10px;
+        background-color: #00FF00;
+        animation: blink 1s step-start infinite;
+        margin-left: 2px;
+    }
+
+    @keyframes blink {
+        50% { background-color: transparent; }
+    }
+
+    .center {
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+
+<div id="intro-screen">
+    <p>Alert: Unknown signals detected on Mars. Explorers report alien activity near the Valles Marineris canyon.
+    The research team is preparing for first contact protocols. Be cautious — signals are unpredictable and may contain intelligence.</p>
+    <p class="center">Press <strong>Space</strong> or <strong>Enter</strong> to enter the system...</p>
+</div>
+
+<div id="chat-screen">
+    <div id="chat-box"></div>
+    <input type="text" id="user-input" placeholder="Type a message..." autofocus>
+    <button onclick="sendMessage()">Send</button>
+</div>
+
+<script>
+    // Intro screen -> chat screen transition
+    document.addEventListener("keydown", function(e) {
+        if (e.code === "Space" || e.code === "Enter") {
+            document.getElementById("intro-screen").style.display = "none";
+            document.getElementById("chat-screen").style.display = "flex";
+            document.getElementById("user-input").focus();
+        }
+    });
+
+    async function sendMessage() {
+        const input = document.getElementById("user-input");
+        const message = input.value;
+        if (!message) return;
+
+        await appendMessage("You", message);
+        input.value = "";
+
+        const response = await fetch("/chat", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({message})
         });
-    </script>
+
+        const data = await response.json();
+        await appendMessage("Chatbot", data.reply);
+    }
+
+    function appendMessage(sender, text) {
+        return new Promise(resolve => {
+            const chatBox = document.getElementById("chat-box");
+            const msgDiv = document.createElement("div");
+            msgDiv.className = "message";
+            chatBox.appendChild(msgDiv);
+
+            let i = 0;
+            const cursorSpan = document.createElement("span");
+            cursorSpan.className = "cursor";
+            msgDiv.appendChild(cursorSpan);
+
+            function typeWriter() {
+                if (i <= text.length) {
+                    msgDiv.innerHTML = `<strong>${sender}:</strong> ${text.slice(0, i)}`;
+                    msgDiv.appendChild(cursorSpan);
+                    i++;
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                    setTimeout(typeWriter, 20);
+                } else {
+                    cursorSpan.remove();
+                    resolve();
+                }
+            }
+            typeWriter();
+        });
+    }
+
+    // Enter key sends message
+    document.getElementById("user-input").addEventListener("keypress", function(e) {
+        if (e.key === "Enter") sendMessage();
+    });
+</script>
+
 </body>
 </html>

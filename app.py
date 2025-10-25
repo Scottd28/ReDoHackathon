@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from flask import Flask, render_template, request, jsonify
 from openai import OpenAI
@@ -8,7 +10,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = Flask(__name__)
 messages = [{"role": "system", "content":
-    """You are the Mars Colony AI. Decide if this is a human or machine response.
+    """You are the Mars Colony AI, in change of the alien crisis. Decide if this is a human or machine response.
     Respond ONLY in the following JSON format: 
     {"human_likelihood": X, "reason": "Y", "nextQuestion": "Z"}"""}]
 
