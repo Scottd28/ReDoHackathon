@@ -1,54 +1,150 @@
 body {
     font-family: "Courier New", Courier, monospace;
-    background-color: #000000; /* black background */
-    color: #00FF00; /* bright green text */
+    background-color: #000000;
+    color: #00FF00;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     height: 100vh;
     margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
+/* --- Main Two-Column Layout --- */
+.main-container {
+    display: flex;
+    width: 100%;
+    max-width: 1200px;
+    gap: 20px;
+}
+
+/* --- LEFT SIDE: CHATBOT STYLES --- */
 .chat-container {
-    width: 500px;
-    background-color: #000000; /* same black background */
+    flex: 2; /* 2/3 width */
+    min-width: 500px;
+    background-color: #000000;
     border: 2px solid #00FF00;
     border-radius: 5px;
     display: flex;
     flex-direction: column;
     padding: 10px;
+    height: 90vh;
 }
 
 #chat-box {
-    height: 400px;
+    flex: 1;
     overflow-y: auto;
     margin-bottom: 10px;
     border: 1px solid #00FF00;
     padding: 5px;
-    white-space: pre-wrap; /* keeps text formatting */
+    white-space: pre-wrap;
 }
 
-.message {
-    margin: 5px 0;
+.input-group { display: flex; }
+#user-input { flex: 1; padding: 8px; margin-right: 5px; background-color: #000000; color: #00FF00; border: 1px solid #00FF00; }
+button { background-color: #000000; color: #00FF00; border: 1px solid #00FF00; padding: 5px 10px; cursor: pointer; }
+button:hover { background-color: #003300; }
+
+
+/* --- RIGHT SIDE: TELEMETRY PANEL STYLES --- */
+
+.right-panel {
+    flex: 1; /* 1/3 width */
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    height: 90vh;
 }
 
-#user-input {
-    flex: 1;
-    padding: 8px;
-    margin-right: 5px;
-    background-color: #000000;
-    color: #00FF00;
+.telemetry-panel {
+    border: 2px solid #00FF00;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 🎥 LIVE FEED PANEL (Camera) - 2 parts of vertical space */
+.video-container {
+    flex: 2;
+    position: relative;
+    min-height: 25vh;
+    overflow: hidden;
+}
+
+/* 🧑‍🚀 COLONY DATA/MAP PANEL - 3 parts of vertical space */
+#colony-data-panel {
+    flex: 3;
+    overflow-y: auto;
+}
+
+.telemetry-panel p {
+    margin-top: 0;
+    text-align: center;
+    font-size: 0.9em;
+    padding-bottom: 5px;
+    border-bottom: 1px dashed #00FF00;
+}
+
+/* Wrapper to hold video and canvas for layering */
+.video-wrap { position: relative; width: 100%; flex-grow: 1; }
+
+/* FIX: object-fit: contain prevents the webcam from being cropped/zoomed in */
+#webcam-feed {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    transform: scaleX(-1);
+    filter: sepia(100%) hue-rotate(180deg) saturate(300%) contrast(150%);
+}
+
+#detection-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform: scaleX(-1);
+}
+
+.status-content { padding: 10px 0; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px dashed #002200; margin-bottom: 10px; }
+#colony-population { font-size: 1.5em; font-weight: bold; color: #FFD700; }
+
+
+/* 🌎 3D MAP STYLES */
+#map-area {
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-grow: 1;
+}
+
+#map-3d-container {
+    width: 100%;
+    height: 220px;
     border: 1px solid #00FF00;
-}
-
-button {
     background-color: #000000;
-    color: #00FF00;
-    border: 1px solid #00FF00;
-    padding: 5px 10px;
-    cursor: pointer;
+    margin-bottom: 10px;
+    overflow: hidden;
 }
 
-button:hover {
-    background-color: #003300;
+#map-3d-container canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    /* FILTER REMOVED: Now relies on the dark gray background and good lighting */
+}
+
+
+/* 🚨 ALERT/CRITICAL DATA STYLES */
+.alert {
+    color: #FF0000;
+    font-weight: bold;
+    animation: blinker 1.5s linear infinite;
+}
+
+@keyframes blinker {
+    50% { opacity: 0.5; }
 }
