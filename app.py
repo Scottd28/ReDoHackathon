@@ -12,17 +12,14 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 alien_detection_questions = [
     "Can you describe the taste of water without using the word 'wet'?",
-    "If you could instantly learn any skill from an alien species, what would it be?",
-    "Can you whistle a tune that doesn't exist on Earth?",
-    "Do you have a favorite color humans haven't named yet?",
-    "If you saw a star explode, what would your first reaction be?",
-    "Do you prefer walking on two legs or imagining you could float?",
-    "Have you ever felt like you remembered a planet you’ve never visited?",
-    "If you could breathe underwater, what would you explore first?",
-    "Do shadows ever feel like they’re alive to you?",
-    "Have you ever felt out of sync with human routines?",
-    "Can you imagine a flavor no human tongue could perceive?",
-    "Do you notice patterns in nature that others ignore?"
+    "If you had to teach aliens how to high-five, how would you explain it?",
+    "Would you rather fight one horse-sized duck or a hundred duck-sized aliens?",
+    "Do you ever look at the moon and think, 'That thing’s definitely watching us'?",
+    "If aliens asked you to prove you have emotions, what meme would you show them?",
+    "If you could instantly learn any skill from aliens, but it made you glow slightly, would you still do it?",
+    "If your reflection winked at you first, would you wink back or file a system report?",
+    "Have you ever felt like you accidentally joined a simulation but forgot the tutorial?",
+    "If you could breathe underwater, would you explore the ocean or just vibe down there forever?",
 ]
 
 
