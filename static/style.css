@@ -1,143 +1,136 @@
 body {
     font-family: "Courier New", Courier, monospace;
     background-color: #000000;
-    color: #00FF00;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    color: var(--main-color, #00FF00);
     height: 100vh;
     margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+
+    background-image: repeating-linear-gradient(
+        rgba(0,255,0,0.05) 0px,
+        rgba(0,255,0,0.05) 1px,
+        transparent 2px,
+        transparent 4px
+    );
 }
 
-/* ✅ DEFAULT GREEN THEME COLORS */
 :root {
     --main-color: #00FF00;
 }
 
-body {
-    color: var(--main-color);
-}
-
-/* ✅ TOP RIGHT THEME TOGGLE */
 .top-toggle {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 12px;
+    right: 12px;
     z-index: 999;
-    padding: 6px 12px;
-    background-color: black;
-    color: var(--main-color);
+    padding: 6px 14px;
+    background: black;
     border: 1px solid var(--main-color);
-    cursor: pointer;
+    color: var(--main-color);
+    border-radius: 4px;
+    transition: 0.2s;
 }
 
 .top-toggle:hover {
-    background-color: #003300;
+    transform: scale(1.08);
 }
 
 #intro-screen, #chat-screen {
-    width: 600px;
-    background-color: #000000;
+    width: 650px;
     border: 2px solid var(--main-color);
-    border-radius: 5px;
+    border-radius: 10px;
     padding: 20px;
-    display: flex;
-    flex-direction: column;
+    background-color: rgba(0,0,0,0.85);
+    backdrop-filter: blur(2px);
 }
 
 #chat-screen {
     display: none;
+    flex-direction: column;
+    height: 90vh;
 }
 
 #chat-box {
     flex: 1;
-    overflow-y: auto;
     margin-bottom: 10px;
     border: 1px solid var(--main-color);
-    padding: 5px;
-    white-space: pre-wrap;
+    padding: 10px;
+    overflow-y: auto;
 }
 
 .message {
-    margin: 5px 0;
+    margin: 10px 0;
+    line-height: 1.4;
+}
+
+.bot-msg {
+    margin-bottom: 16px;
+}
+
+.reason-text {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-bottom: 3px;
+    font-style: italic;
+    color: var(--main-color);
 }
 
 #input-row {
     display: flex;
-    margin-top: 10px;
+    gap: 8px;
 }
 
 #user-input {
     flex: 1;
     padding: 8px;
-    margin-right: 5px;
-    background-color: #000000;
-    color: var(--main-color);
+    background: #000;
     border: 1px solid var(--main-color);
-    caret-color: var(--main-color);
+    color: var(--main-color);
 }
 
 button {
-    background-color: #000000;
-    color: var(--main-color);
+    background: #000;
     border: 1px solid var(--main-color);
-    padding: 5px 10px;
+    color: var(--main-color);
     cursor: pointer;
+    border-radius: 4px;
 }
 
 button:hover {
-    background-color: #003300;
+    background: rgba(0,255,0,0.12);
 }
 
-.cursor {
-    display: inline-block;
-    width: 10px;
-    background-color: var(--main-color);
-    animation: blink 1s step-start infinite;
-    margin-left: 2px;
+.pulse {
+    animation: pulseAnim 0.4s;
 }
 
-@keyframes blink {
-    50% { background-color: transparent; }
+@keyframes pulseAnim {
+    0% { box-shadow: 0 0 2px var(--main-color); }
+    100% { box-shadow: 0 0 10px var(--main-color); }
 }
 
-.center {
-    text-align: center;
-}
-
-/* ✅ HUMAN LIKELIHOOD BAR */
 #likelihood-container {
     display: flex;
     align-items: center;
-    margin: 8px 0;
     gap: 10px;
+    margin-bottom: 12px;
 }
 
 #likelihood-bar {
     flex: 1;
     height: 20px;
     border: 1px solid var(--main-color);
-    background-color: black;
-    position: relative;
 }
 
 #likelihood-fill {
     height: 100%;
     width: 0%;
-    background-color: var(--main-color);
-    transition: width 0.5s ease;
+    background: var(--main-color);
+    transition: width 0.4s ease;
 }
 
-#likelihood-percent {
-    width: 50px;
-    text-align: right;
-}
-
-/* ✅ BLUE THEME OVERRIDES */
 body.blue-theme {
     --main-color: #00B7FF;
-}
-
-body.blue-theme button:hover {
-    background-color: #003355;
 }

@@ -7,7 +7,6 @@
 </head>
 <body>
 
-<!-- ✅ THEME TOGGLE NOW AT TOP -->
 <button id="theme-toggle" class="top-toggle">Blue Mode</button>
 
 <div id="intro-screen">
@@ -17,6 +16,7 @@
 </div>
 
 <div id="chat-screen">
+
     <div id="chat-box"></div>
 
     <div id="likelihood-container">
@@ -31,10 +31,10 @@
         <input type="text" id="user-input" placeholder="Type a message..." autofocus>
         <button onclick="sendMessage()">Send</button>
     </div>
+
 </div>
 
 <script>
-    // Intro screen -> chat screen transition
     document.addEventListener("keydown", function(e) {
         if (e.code === "Space" || e.code === "Enter") {
             document.getElementById("intro-screen").style.display = "none";
@@ -45,7 +45,10 @@
 
     function updateHumanLikelihood(value) {
         const percent = Math.round(value * 100);
-        document.getElementById("likelihood-fill").style.width = percent + "%";
+        const fill = document.getElementById("likelihood-fill");
+        fill.style.width = percent + "%";
+        fill.classList.add("pulse");
+        setTimeout(() => fill.classList.remove("pulse"), 400);
         document.getElementById("likelihood-percent").textContent = percent + "%";
     }
 
@@ -54,7 +57,7 @@
         const message = input.value;
         if (!message) return;
 
-        await appendMessage("You", message);
+        appendMessage("You", message);
         input.value = "";
 
         const response = await fetch("/chat", {
@@ -67,48 +70,40 @@
         const botData = JSON.parse(data.reply);
 
         updateHumanLikelihood(botData.human_likelihood);
-        await appendMessage("Chatbot", botData.nextQuestion);
+        appendBotMessage(botData.nextQuestion, botData.reason);
     }
 
     function appendMessage(sender, text) {
-        return new Promise(resolve => {
-            const chatBox = document.getElementById("chat-box");
-            const msgDiv = document.createElement("div");
-            msgDiv.className = "message";
-            chatBox.appendChild(msgDiv);
+        const chatBox = document.getElementById("chat-box");
+        const msgDiv = document.createElement("div");
+        msgDiv.className = "message";
+        msgDiv.innerHTML = `<strong>${sender}:</strong> ${text}`;
+        chatBox.appendChild(msgDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
 
-            let i = 0;
-            const cursorSpan = document.createElement("span");
-            cursorSpan.className = "cursor";
-            msgDiv.appendChild(cursorSpan);
+    function appendBotMessage(question, reason) {
+        const chatBox = document.getElementById("chat-box");
+        const msgDiv = document.createElement("div");
+        msgDiv.className = "message bot-msg";
 
-            function typeWriter() {
-                if (i <= text.length) {
-                    msgDiv.innerHTML = `<strong>${sender}:</strong> ${text.slice(0, i)}`;
-                    msgDiv.appendChild(cursorSpan);
-                    i++;
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                    setTimeout(typeWriter, 20);
-                } else {
-                    cursorSpan.remove();
-                    resolve();
-                }
-            }
-            typeWriter();
-        });
+        msgDiv.innerHTML = `
+            <div class="reason-text">${reason}</div>
+            <strong>Chatbot:</strong> ${question}
+        `;
+
+        chatBox.appendChild(msgDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
     }
 
     document.getElementById("user-input").addEventListener("keypress", function(e) {
         if (e.key === "Enter") sendMessage();
     });
 
-    // ✅ Theme Toggle Script
     document.getElementById("theme-toggle").addEventListener("click", () => {
         document.body.classList.toggle("blue-theme");
-
         const isBlue = document.body.classList.contains("blue-theme");
-        document.getElementById("theme-toggle").textContent =
-            isBlue ? "Green Mode" : "Blue Mode";
+        document.getElementById("theme-toggle").textContent = isBlue ? "Green Mode" : "Blue Mode";
     });
 </script>
 
