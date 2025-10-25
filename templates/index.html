@@ -76,6 +76,9 @@
             document.getElementById("intro-screen").style.display = "none";
             document.getElementById("chat-screen").style.display = "flex";
             document.getElementById("user-input").focus();
+            const music = document.getElementById("bg-music");
+            music.volume = 0.3;
+            music.play().catch(err => console.warn("Music blocked:", err));
         }
     });
 
@@ -224,5 +227,7 @@
     });
 </script>
 
+<audio id="bg-music" src="/static/sounds/space-ambient-351305.mp3" loop preload="auto"></audio>
+<audio id="type-sound" src="/static/sounds/type.wav" preload="auto"></audio>
 </body>
 </html>
