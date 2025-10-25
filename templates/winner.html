@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>YOU'RE HUMAN, BRUH :))</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/confetti-js@0.0.18/dist/index.min.js"></script>
+
+    <style>
+        /* Override styles for the winner page */
+        body {
+            display: block;
+            padding: 0;
+            overflow: hidden;
+        }
+        .main-container {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            position: relative;
+        }
+
+        /* Full screen map container */
+        #map-3d-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Overlay for Success Message */
+        .success-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            pointer-events: none;
+            text-align: center;
+        }
+
+        .success-message {
+            font-size: 4em;
+            color: #FFD700;
+            text-shadow: 0 0 10px #00FF00, 0 0 20px #FF00FF;
+            pointer-events: auto;
+            line-height: 1.2;
+        }
+
+        /* Confetti Canvas */
+        #confetti-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 50;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body onload="init3DMap(); startConfetti();">
+
+    <audio id="background-music" loop autoplay preload="auto">
+        <source src="/static/assets/skibidi_toilet.mp3" type="audio/mpeg">
+        <source src="/static/assets/skibidi_toilet.ogg" type="audio/ogg">
+        Your browser does not support the audio element.
+    </audio>
+    <canvas id="confetti-canvas"></canvas>
+
+    <div class="main-container">
+
+        <div id="map-3d-container"></div>
+
+        <div class="success-overlay">
+            <h1 class="success-message">YOU'RE HUMAN, BRUH :))</h1>
+        </div>
+
+    </div>
+
+    <script>
+        let scene, camera, renderer, controls, mapObject, character;
+        let mixer;
+        const clock = new THREE.Clock();
+
+        function init3DMap() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x111111);
+
+            camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 10000);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            document.getElementById('map-3d-container').appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(500, 1000, 500);
+            scene.add(directionalLight);
+
+            const hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x080820, 1);
+            scene.add(hemisphereLight);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+            controls.minDistance = 50;
+            controls.maxDistance = 5000;
+            controls.enablePan = false;
+            controls.target.set(0, 0, 0);
+            controls.update();
+
+            const loader = new THREE.GLTFLoader();
+            const marsModelPath = '/static/assets/24881_Mars_1_6792.glb';
+            const characterModelPath = '/static/assets/chicago_dancing.glb';
+
+            // Load Mars model
+            loader.load(marsModelPath, function (gltf) {
+                mapObject = gltf.scene;
+
+                const box = new THREE.Box3().setFromObject(mapObject);
+                const center = box.getCenter(new THREE.Vector3());
+                mapObject.position.sub(center);
+                mapObject.rotation.x = -Math.PI / 4;
+
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const targetSize = 200;
+                const scale = targetSize / maxDim;
+                mapObject.scale.set(scale, scale, scale);
+
+                const scaledSize = size.clone().multiplyScalar(scale);
+                const maxScaledDim = Math.max(scaledSize.x, scaledSize.y, scaledSize.z);
+                const distance = maxScaledDim * 0.7;
+
+                camera.position.set(distance, distance * 0.8, distance * 0.5);
+                camera.lookAt(0, 0, 0);
+                controls.target.set(0, 0, 0);
+                controls.minDistance = distance / 10;
+                controls.maxDistance = distance * 5;
+                controls.update();
+
+                scene.add(mapObject);
+
+                // Add initial dots
+                const radius = 100;
+                for (let i = 0; i < 100; i++) {
+                    const dotGeometry = new THREE.SphereGeometry(1.5, 8, 8);
+                    const dotMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                    const dot = new THREE.Mesh(dotGeometry, dotMaterial);
+                    const theta = Math.random() * 2 * Math.PI;
+                    const phi = Math.acos(2 * Math.random() - 1);
+                    dot.position.set(
+                        radius * Math.sin(phi) * Math.cos(theta),
+                        radius * Math.sin(phi) * Math.sin(theta),
+                        radius * Math.cos(phi)
+                    );
+                    scene.add(dot);
+                }
+            }, undefined, function (error) {
+                console.error('An error happened while loading the Mars 3D model:', error);
+            });
+
+            // Load Character model
+            loader.load(characterModelPath, function (gltf) {
+                character = gltf.scene;
+                scene.add(character);
+
+                // Setup animation mixer
+                mixer = new THREE.AnimationMixer(character);
+                if (gltf.animations && gltf.animations.length > 0) {
+                    const action = mixer.clipAction(gltf.animations[0]); // Play the first animation found
+                    action.play();
+                } else {
+                    console.warn("No animations found for the dancing character model.");
+                }
+
+                character.position.set(130, 0, 0);
+                character.rotation.y = Math.PI / 2;
+
+                // Scale is still 0.5, which should be reasonable based on the last fix.
+                character.scale.set(0.5, 0.5, 0.5);
+
+            }, undefined, function (error) {
+                console.error('An error happened while loading the dancing character model:', error);
+                console.error('Please ensure /static/assets/chicago_dancing.glb exists and is a valid GLB model with animations.');
+            });
+
+
+            function animate() {
+                requestAnimationFrame(animate);
+
+                const delta = clock.getDelta();
+                if (mixer) {
+                    mixer.update(delta); // Update character animations
+                }
+
+                if (mapObject) {
+                    mapObject.rotation.y += 0.0005;
+                }
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', onWindowResize, false);
+            function onWindowResize() {
+                const newWidth = window.innerWidth;
+                const newHeight = window.innerHeight;
+                camera.aspect = newWidth / newHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(newWidth, newHeight);
+            }
+        }
+
+        // --- CONFETTI LOGIC ---
+        function startConfetti() {
+            const confettiSettings = {
+                target: 'confetti-canvas',
+                max: 100,
+                size: 1,
+                animate: true,
+                props: ['circle', 'square', 'line'],
+                colors: [[165,104,246],[230,61,135],[0,200,80],[255,255,0]],
+                clock: 25,
+                width: window.innerWidth,
+                height: window.innerHeight,
+                rotate: true,
+                start_from_pointer: false,
+                respawn: true,
+                zIndex: 50
+            };
+            const confetti = new ConfettiGenerator(confettiSettings);
+            confetti.render();
+        }
+    </script>
+</body>
+</html>

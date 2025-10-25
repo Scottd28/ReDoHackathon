@@ -11,320 +11,503 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 
-<body onload="startCamera(); startPopulationCounter(); init3DMap();">
-    <div class="main-container">
-        <div class="chat-container">
-            <div id="chat-box"></div>
-            <div class="input-group">
-                <input type="text" id="user-input" placeholder="Type a message..." autofocus>
-                <button onclick="sendMessage()">Send</button>
+<body onload="startCamera(); startPopulationCounter();">
+
+<audio id="bg-music" src="/static/space-ambient-351305.mp3" loop preload="auto"></audio>
+<audio id="type-sound" src="/static/type.wav" preload="auto"></audio>
+<button id="theme-toggle" class="top-toggle">Green Mode</button>
+
+<div id="intro-screen">
+    <p>Alert: Unknown signals detected on Mars. Explorers report alien activity near the Valles Marineris canyon.
+    The research team is preparing for first contact protocols. Be cautious — signals are unpredictable and may contain intelligence.</p>
+    <p class="center">Press <strong>Space</strong> or <strong>Enter</strong> to enter the system...</p>
+</div>
+
+<div id="end-screen" style="display: none;">
+    <div class="end-panel">
+        <h1 id="end-title"></h1>
+        <p id="end-sub"></p>
+        <p id="end-percent"></p>
+        <div class="end-actions">
+            <button id="restart-btn">Restart</button>
+        </div>
+    </div>
+</div>
+
+<div class="main-container" style="display: none;">
+
+    <div class="left-panel">
+        <div class="video-container telemetry-panel">
+            <p>LIVE FEED: MARS COMM - BIOMETRIC SCANNER</p>
+            <div class="video-wrap">
+                <video id="webcam-feed" autoplay playsinline onloadedmetadata="onVideoLoaded()"></video>
+                <canvas id="detection-canvas"></canvas>
+            </div>
+            <p id="status-line">Status: Ready</p>
+        </div>
+
+        <div class="telemetry-panel" id="colony-data-panel">
+            <p>COLONY STATUS: ARES IV</p>
+            <div class="status-content">
+                <span>Population:</span>
+                <span id="colony-population">0</span>
+            </div>
+            <div class="status-content">
+                <span>Threat Level:</span>
+                <span id="threat-level">GREEN</span>
             </div>
         </div>
 
-        <div class="right-panel">
-            <div class="video-container telemetry-panel">
-                <p>LIVE FEED: MARS COMM - BIOMETRIC SCANNER</p>
-                <div class="video-wrap">
-                    <video id="webcam-feed" autoplay playsinline onloadedmetadata="onVideoLoad()"></video>
-                    <canvas id="detection-canvas"></canvas>
-                </div>
-            </div>
-
-            <div id="colony-data-panel" class="telemetry-panel">
-                <p>COLONY STATUS: MISSION ALPHA</p>
-
-                <div class="status-content">
-                    <p class="data-label alert">Life Support: **CRITICAL**</p>
-                </div>
-
-                <div id="map-area">
-                    <p class="data-label">
-                        Current Population: <span id="colony-population">0</span>
-                    </p>
-
-                    <div id="map-3d-container"></div>
-                </div>
-            </div>
+        <div id="map-area" class="telemetry-panel">
+            <p>GEOSPATIAL LOCATOR</p>
+            <p class="data-label">
+                Current Population: <span id="colony-population">0</span>
+            </p>
+            <div id="map-3d-container"></div>
         </div>
     </div>
 
-    <script>
+    <div class="chat-container">
+        <div id="chat-box"></div>
+
+        <div id="likelihood-container">
+            <span>Human Likelihood:</span>
+            <div id="likelihood-bar">
+                <div id="likelihood-fill"></div>
+            </div>
+            <span id="likelihood-percent">50%</span>
+        </div>
+
+        <div class="input-group">
+            <input type="text" id="user-input" placeholder="Type a message..." autofocus>
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- GLOBAL GAME VARIABLES ---
+    var Percentage = 0.50;
+    let mapInitialized = false;
+
+    // --- INITIAL LOAD AND START GAME LOGIC ---
+    window.addEventListener("load", async () => {
+        // Load initial chatbot question
+        try {
+            const response = await fetch("/start", {
+                method: "POST", headers: {"Content-Type": "application/json"}, body: ""
+            });
+            const data = await response.json();
+            const botData = JSON.parse(data.reply);
+
+            updateHumanLikelihood(0);
+            appendMessage("Chatbot", botData.nextQuestion, botData.reason || "");
+        } catch (err) {
+            console.error("Failed to load first question:", err);
+        }
+    });
+
+    // Intro screen to Main screen transition
+    document.addEventListener("keydown", function (e) {
+        if (e.code === "Space" || e.code === "Enter") {
+            const intro = document.getElementById("intro-screen");
+            if (intro.style.display !== "none") {
+                intro.style.display = "none";
+                document.querySelector(".main-container").style.display = "flex";
+
+                // Initialize map here, after the container is visible
+                if (!mapInitialized) {
+                    init3DMap();
+                    mapInitialized = true;
+                }
+
+                document.getElementById("user-input").focus();
+
+                const music = document.getElementById("bg-music");
+                music.volume = 0.3;
+                music.play().catch(err => console.warn("Music blocked, user interaction required:", err));
+            }
+        }
+    });
+
+    // --- CHATBOT & TYPEWRITER LOGIC (UNCHANGED) ---
+    async function typeWriter(element, text, speed = 10) {
+        const typeSound = document.getElementById("type-sound");
+        element.textContent = "";
+        for (let i = 0; i < text.length; i++) {
+            element.textContent += text[i];
+            element.scrollIntoView({ behavior: "smooth", block: "end" });
+
+            if (i % 3 === 0) {
+                typeSound.currentTime = 0;
+                typeSound.play().catch(err => {});
+            }
+            await new Promise(res => setTimeout(res, speed));
+        }
+    }
+
+    async function appendMessage(sender, text, reason = "") {
+        const chatBox = document.getElementById("chat-box");
+        const msgDiv = document.createElement("div");
+        msgDiv.className = "message";
+
+        const isBot = sender === "Chatbot" || sender === "System";
+
+        if (isBot) {
+            document.getElementById("user-input").disabled = true;
+            msgDiv.innerHTML = `
+                <div class="reason-text">${reason}</div>
+                <strong>${sender}:</strong> <span class="message-text"></span>
+            `;
+            chatBox.appendChild(msgDiv);
+
+            const textElement = msgDiv.querySelector(".message-text");
+            textElement.classList.add('typing');
+            await typeWriter(textElement, text);
+            textElement.classList.remove('typing');
+
+            document.getElementById("user-input").disabled = false;
+            document.getElementById("user-input").focus();
+
+        } else {
+            msgDiv.innerHTML = `<strong>${sender}:</strong> ${text}`;
+            chatBox.appendChild(msgDiv);
+        }
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById("user-input");
+        const message = input.value;
+        if (!message) return;
+
+        appendMessage("You", message);
+        input.value = "";
+
+        try {
+            const response = await fetch("/chat", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({message})
+            });
+
+            const data = await response.json();
+            const botData = JSON.parse(data.reply);
+
+            updateHumanLikelihood(botData.human_likelihood_change || 0);
+            appendMessage("Chatbot", botData.nextQuestion, botData.reason || "");
+        } catch (err) {
+            appendMessage("System", "Error contacting server. Check console for details.");
+            console.error(err);
+            document.getElementById("user-input").disabled = false;
+        }
+    }
+
+    // Enter key to send
+    document.getElementById("user-input").addEventListener("keypress", function(e) {
+        if (e.key === "Enter") {
+            if (document.getElementById("intro-screen").style.display === "none") {
+                 sendMessage();
+            }
+        }
+    });
+
+    // --- LIKELIHOOD AND END SCREEN LOGIC (MODIFIED WIN CONDITION) ---
+
+    function updateHumanLikelihood(change) {
+        Percentage = Math.max(0, Math.min(1, Percentage + change));
+        const percent = Math.round(Percentage * 100);
+        const fill = document.getElementById("likelihood-fill");
+        fill.style.width = percent + "%";
+        fill.classList.add("pulse");
+        setTimeout(() => fill.classList.remove("pulse"), 400);
+        document.getElementById("likelihood-percent").textContent = percent + "%";
+
+        setTimeout(() => checkWinCondition(percent), 300);
+    }
+
+    function checkWinCondition(percent) {
+        if (percent >= 90) {
+            // ⭐ NEW: Redirect to winner.html on successful win
+            window.location.href = 'winner.html';
+            return;
+        }
+
+        if (percent < 20) {
+            showEndScreen(
+                "alien detected",
+                "Low human-likelihood. Entity classified as non-human. Locking out.",
+                percent,
+                "failure"
+            );
+            return;
+        }
+    }
+
+    function showEndScreen(titleText, subText, percent, type) {
+        document.querySelector(".main-container").style.display = "none";
+        document.getElementById("intro-screen").style.display = "none";
+
+        document.getElementById("end-title").textContent = titleText.toUpperCase();
+        document.getElementById("end-sub").textContent = subText;
+        document.getElementById("end-percent").textContent = `Final human-likelihood: ${percent}%`;
+
+        const endScreen = document.getElementById("end-screen");
+        endScreen.classList.remove("success", "failure");
+        endScreen.classList.add(type);
+        endScreen.style.display = "flex";
+
+        document.getElementById("restart-btn").focus();
+    }
+
+    document.getElementById("restart-btn").addEventListener("click", () => {
+        window.location.reload();
+    });
+
+    // --- THEME TOGGLE (PRESERVED) ---
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        document.body.classList.toggle("blue-theme");
+        const isBlue = document.body.classList.contains("blue-theme");
+        document.getElementById("theme-toggle").textContent = isBlue ? "Green Mode" : "Blue Mode";
+    });
+
+
+    // --- ADVANCED FUNCTIONALITY (PRESERVED) ---
+
+    // 🎥 WEBCAM & BIOMETRICS LOGIC
+    async function startCamera() {
+        const video = document.getElementById('webcam-feed');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+        } catch (err) {
+            document.getElementById('status-line').textContent = "Status: Error - Webcam access denied";
+            console.error("Could not start camera: ", err);
+        }
+        await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+        await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+        await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
+        await faceapi.nets.faceExpressionNet.loadFromUri('/models');
+    }
+
+    function onVideoLoaded() {
         const video = document.getElementById('webcam-feed');
         const canvas = document.getElementById('detection-canvas');
-        let detectionInterval;
-        const modelUri = '/static/models';
+        const displaySize = { width: video.clientWidth, height: video.clientHeight };
+        faceapi.matchDimensions(canvas, displaySize);
 
-        // --- CAMERA FUNCTIONALITY ---
-        async function startCamera() {
-            try {
-                await faceapi.nets.tinyFaceDetector.loadFromUri(modelUri);
-                await faceapi.nets.faceLandmark68Net.loadFromUri(modelUri);
-                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    video.srcObject = stream;
-                }
-            } catch (err) {
-                console.error("Camera or Model Load Failed:", err);
-            }
-        }
-
-        function onVideoLoad() {
-            faceapi.matchDimensions(canvas, { width: video.clientWidth, height: video.clientHeight });
-            detectionInterval = setInterval(detectFaces, 100);
-        }
-
-        async function detectFaces() {
-            const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 128, scoreThreshold: 0.5 }))
-                                            .withFaceLandmarks();
-            const resizedDetections = faceapi.resizeResults(detections, { width: video.clientWidth, height: video.clientHeight });
+        setInterval(async () => {
+            const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceExpressions();
+            const resizedDetections = faceapi.resizeResults(detections, displaySize);
             canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-            resizedDetections.forEach(detection => {
-                const drawBox = new faceapi.draw.DrawBox(detection.detection.box, { label: 'FACE DETECTED', boxColor: '#00FF00', lineWidth: 3 });
-                drawBox.draw(canvas);
-            });
-        }
+            faceapi.draw.drawDetections(canvas, resizedDetections);
+            faceapi.draw.drawFaceExpressions(canvas, resizedDetections);
 
-        // --- CHATBOT ---
-        async function sendMessage() {
-            const input = document.getElementById("user-input");
-            const message = input.value;
-            if (!message) return;
-            appendMessage("You", message);
-            input.value = "";
-            document.getElementById("user-input").disabled = true;
-            document.querySelector(".input-group button").disabled = true;
-
-            try {
-                const response = await fetch("/chat", {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({message})
-                });
-                const data = await response.json();
-                appendMessage("Chatbot", data.reply);
-            } catch (error) {
-                appendMessage("System Error", "Could not connect to the Mars Colony AI.");
-            } finally {
-                document.getElementById("user-input").disabled = false;
-                document.querySelector(".input-group button").disabled = false;
-                document.getElementById("user-input").focus();
+            if (detections.length > 0) {
+                document.getElementById('status-line').textContent = "Status: Scanning (Face Detected)";
+            } else {
+                document.getElementById('status-line').textContent = "Status: Ready";
             }
-        }
+        }, 100);
+    }
 
-        function appendMessage(sender, text) {
-            const chatBox = document.getElementById("chat-box");
-            const msgDiv = document.createElement("div");
-            msgDiv.className = "message";
-            let i = 0;
-            const typeWriter = () => {
-                if (i < text.length) {
-                    msgDiv.innerHTML = `<strong>${sender}:</strong> ${text.slice(0, i + 1)}`;
-                    i++;
-                    setTimeout(typeWriter, 20);
-                } else {
-                    msgDiv.innerHTML = `<strong>${sender}:</strong> ${text}`;
+    // --- POPULATION COUNTER + RED DOTS (PRESERVED) ---
+    let scene, camera, renderer, controls, mapObject;
+
+    function formatNumber(num) {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    function startPopulationCounter() {
+        let population = 1100865;
+        // INCREASED MAX POPULATION to ensure it runs longer
+        const maxPopulation = 1101500;
+        const populationElement = document.getElementById('colony-population');
+        // NOTE: This will now update the Population in both the Status and Map panels.
+
+        populationElement.textContent = formatNumber(population);
+
+        function addRandomDot() {
+            if (!scene || !camera) return;
+
+            const dotGeometry = new THREE.SphereGeometry(1.5, 8, 8);
+            const dotMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const dot = new THREE.Mesh(dotGeometry, dotMaterial);
+
+            const radius = 100; // Radius of the sphere the dots are placed on
+            const positionVector = new THREE.Vector3();
+            const attempts = 10;
+            let foundPosition = false;
+
+            // Determine the direction the camera is facing towards the object's center (0,0,0)
+            const cameraPosition = new THREE.Vector3();
+            camera.getWorldPosition(cameraPosition);
+            const viewDirection = cameraPosition.clone().negate().normalize();
+
+
+            for (let i = 0; i < attempts; i++) {
+                // Random spherical coordinates
+                const theta = Math.random() * 2 * Math.PI;
+                const phi = Math.acos(2 * Math.random() - 1);
+
+                positionVector.set(
+                    radius * Math.sin(phi) * Math.cos(theta),
+                    radius * Math.sin(phi) * Math.sin(theta),
+                    radius * Math.cos(phi)
+                );
+
+                // Check if the point's normal (positionVector normalized) faces the view direction.
+                // Dot product > 0.1 ensures the point is in the front hemisphere (visible area).
+                if (positionVector.clone().normalize().dot(viewDirection) > 0.1) {
+                    dot.position.copy(positionVector);
+                    foundPosition = true;
+                    break;
                 }
-            };
-            typeWriter();
-            chatBox.appendChild(msgDiv);
-            setTimeout(() => {
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }, text.length * 20);
-        }
-
-        document.getElementById("user-input").addEventListener("keypress", function(e) {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                sendMessage();
             }
-        });
 
-        // --- POPULATION COUNTER + RED DOTS ---
-        function formatNumber(num) {
-            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            // Fallback: If after several attempts it didn't find a good position, just place it randomly.
+            if (!foundPosition) {
+                const theta = Math.random() * 2 * Math.PI;
+                const phi = Math.acos(2 * Math.random() - 1);
+
+                dot.position.set(
+                    radius * Math.sin(phi) * Math.cos(theta),
+                    radius * Math.sin(phi) * Math.sin(theta),
+                    radius * Math.cos(phi)
+                );
+            }
+
+            scene.add(dot);
         }
 
-        function startPopulationCounter() {
-            let population = 1100865;
-            // INCREASED MAX POPULATION to ensure it runs longer
-            const maxPopulation = 1101500;
-            const populationElement = document.getElementById('colony-population');
+        function updatePopulation() {
+            if (population < maxPopulation) {
+                population += 1;
+                // Update both population elements
+                document.querySelectorAll('#colony-population').forEach(el => {
+                    el.textContent = formatNumber(population);
+                });
+                addRandomDot();
+                // DECREASED DELAY FOR FASTER GENERATION (50ms to 150ms)
+                const delay = 50 + Math.random() * 100;
+                setTimeout(updatePopulation, delay);
+            }
+        }
+        setTimeout(updatePopulation, 2000);
+    }
 
-            populationElement.textContent = formatNumber(population);
+    // 🌎 THREE.JS 3D MAP LOGIC (PRESERVED)
+    function init3DMap() {
+        const container = document.getElementById('map-3d-container');
+        const width = container.clientWidth;
+        const height = container.clientHeight;
 
-            function addRandomDot() {
-                if (!scene || !camera) return;
+        // This check ensures the function is called when the container is visible
+        if (width === 0 || height === 0) {
+            console.warn("Map container dimensions are zero. Postponing initialization.");
+            return;
+        }
 
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x111111);
+
+        camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 10000);
+        camera.position.set(0, 0, 1000);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(width, height);
+        container.appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(500, 1000, 500);
+        scene.add(directionalLight);
+
+        const hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x080820, 1);
+        scene.add(hemisphereLight);
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.screenSpacePanning = false;
+        controls.minDistance = 50;
+        controls.maxDistance = 5000;
+        controls.enablePan = false;
+        controls.target.set(0, 0, 0);
+        controls.update();
+
+        const loader = new THREE.GLTFLoader();
+        const modelPath = '/static/assets/24881_Mars_1_6792.glb';
+
+        loader.load(modelPath, function (gltf) {
+            mapObject = gltf.scene;
+
+            const box = new THREE.Box3().setFromObject(mapObject);
+            const center = box.getCenter(new THREE.Vector3());
+            mapObject.position.sub(center);
+            mapObject.rotation.x = -Math.PI / 4;
+
+            const size = box.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const targetSize = 200;
+            const scale = targetSize / maxDim;
+            mapObject.scale.set(scale, scale, scale);
+
+            const scaledSize = size.clone().multiplyScalar(scale);
+            const maxScaledDim = Math.max(scaledSize.x, scaledSize.y, scaledSize.z);
+            const distance = maxScaledDim * 0.7;
+
+            camera.position.set(distance, distance * 0.8, distance * 0.5);
+            camera.lookAt(0, 0, 0);
+            controls.target.set(0, 0, 0);
+            controls.minDistance = distance / 10;
+            controls.maxDistance = distance * 5;
+            controls.update();
+
+            scene.add(mapObject);
+
+            // 🌟 ADD INITIAL 100 DOTS ON LOAD (RANDOM ACROSS ENTIRE PLANET)
+            const radius = 100;
+            for (let i = 0; i < 100; i++) {
                 const dotGeometry = new THREE.SphereGeometry(1.5, 8, 8);
                 const dotMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
                 const dot = new THREE.Mesh(dotGeometry, dotMaterial);
 
-                const radius = 100; // Radius of the sphere the dots are placed on
-                const positionVector = new THREE.Vector3();
-                const attempts = 10;
-                let foundPosition = false;
+                // place dots randomly across the entire spherical surface
+                const theta = Math.random() * 2 * Math.PI;
+                const phi = Math.acos(2 * Math.random() - 1);
 
-                // Determine the direction the camera is facing towards the object's center (0,0,0)
-                const cameraPosition = new THREE.Vector3();
-                camera.getWorldPosition(cameraPosition);
-                const viewDirection = cameraPosition.clone().negate().normalize();
-
-
-                for (let i = 0; i < attempts; i++) {
-                    // Random spherical coordinates
-                    const theta = Math.random() * 2 * Math.PI;
-                    const phi = Math.acos(2 * Math.random() - 1);
-
-                    positionVector.set(
-                        radius * Math.sin(phi) * Math.cos(theta),
-                        radius * Math.sin(phi) * Math.sin(theta),
-                        radius * Math.cos(phi)
-                    );
-
-                    // Check if the point's normal (positionVector normalized) faces the view direction.
-                    // Dot product > 0.1 ensures the point is in the front hemisphere (visible area).
-                    if (positionVector.clone().normalize().dot(viewDirection) > 0.1) {
-                        dot.position.copy(positionVector);
-                        foundPosition = true;
-                        break;
-                    }
-                }
-
-                // Fallback: If after several attempts it didn't find a good position, just place it randomly.
-                if (!foundPosition) {
-                    const theta = Math.random() * 2 * Math.PI;
-                    const phi = Math.acos(2 * Math.random() - 1);
-
-                    dot.position.set(
-                        radius * Math.sin(phi) * Math.cos(theta),
-                        radius * Math.sin(phi) * Math.sin(theta),
-                        radius * Math.cos(phi)
-                    );
-                }
+                dot.position.set(
+                    radius * Math.sin(phi) * Math.cos(theta),
+                    radius * Math.sin(phi) * Math.sin(theta),
+                    radius * Math.cos(phi)
+                );
 
                 scene.add(dot);
             }
+        }, undefined, function (error) {
+            console.error('An error happened while loading the 3D model:', error);
+        });
 
-            function updatePopulation() {
-                if (population < maxPopulation) {
-                    population += 1;
-                    populationElement.textContent = formatNumber(population);
-                    addRandomDot();
-                    // DECREASED DELAY FOR FASTER GENERATION (50ms to 150ms)
-                    const delay = 50 + Math.random() * 100;
-                    setTimeout(updatePopulation, delay);
-                }
-            }
-            setTimeout(updatePopulation, 2000);
-        }
-
-        // 🌎 THREE.JS 3D MAP LOGIC
-        let scene, camera, renderer, controls, mapObject;
-
-        function init3DMap() {
-            const container = document.getElementById('map-3d-container');
-            const width = container.clientWidth;
-            const height = container.clientHeight;
-
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x111111);
-
-            camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 10000);
-            camera.position.set(0, 0, 1000);
-
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(width, height);
-            container.appendChild(renderer.domElement);
-
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-            scene.add(ambientLight);
-
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-            directionalLight.position.set(500, 1000, 500);
-            scene.add(directionalLight);
-
-            const hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x080820, 1);
-            scene.add(hemisphereLight);
-
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
-            controls.screenSpacePanning = false;
-            controls.minDistance = 50;
-            controls.maxDistance = 5000;
-            controls.enablePan = false;
-            controls.target.set(0, 0, 0);
+        function animate() {
+            requestAnimationFrame(animate);
             controls.update();
-
-            const loader = new THREE.GLTFLoader();
-            const modelPath = '/static/assets/24881_Mars_1_6792.glb';
-
-            loader.load(modelPath, function (gltf) {
-                mapObject = gltf.scene;
-
-                const box = new THREE.Box3().setFromObject(mapObject);
-                const center = box.getCenter(new THREE.Vector3());
-                mapObject.position.sub(center);
-                mapObject.rotation.x = -Math.PI / 4;
-
-                const size = box.getSize(new THREE.Vector3());
-                const maxDim = Math.max(size.x, size.y, size.z);
-                const targetSize = 200;
-                const scale = targetSize / maxDim;
-                mapObject.scale.set(scale, scale, scale);
-
-                const scaledSize = size.clone().multiplyScalar(scale);
-                const maxScaledDim = Math.max(scaledSize.x, scaledSize.y, scaledSize.z);
-                const distance = maxScaledDim * 0.7;
-
-                camera.position.set(distance, distance * 0.8, distance * 0.5);
-                camera.lookAt(0, 0, 0);
-                controls.target.set(0, 0, 0);
-                controls.minDistance = distance / 10;
-                controls.maxDistance = distance * 5;
-                controls.update();
-
-                scene.add(mapObject);
-
-                // 🌟 ADD INITIAL 100 DOTS ON LOAD (RANDOM ACROSS ENTIRE PLANET)
-                const radius = 100;
-                for (let i = 0; i < 100; i++) {
-                    const dotGeometry = new THREE.SphereGeometry(1.5, 8, 8);
-                    const dotMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-                    const dot = new THREE.Mesh(dotGeometry, dotMaterial);
-
-                    // place dots randomly across the entire spherical surface
-                    const theta = Math.random() * 2 * Math.PI;
-                    const phi = Math.acos(2 * Math.random() - 1);
-
-                    dot.position.set(
-                        radius * Math.sin(phi) * Math.cos(theta),
-                        radius * Math.sin(phi) * Math.sin(theta),
-                        radius * Math.cos(phi)
-                    );
-
-                    scene.add(dot);
-                }
-            }, undefined, function (error) {
-                console.error('An error happened while loading the 3D model:', error);
-            });
-
-            function animate() {
-                requestAnimationFrame(animate);
-                controls.update();
-                renderer.render(scene, camera);
-            }
-            animate();
-
-            window.addEventListener('resize', onWindowResize, false);
-            function onWindowResize() {
-                const newWidth = container.clientWidth;
-                const newHeight = container.clientHeight;
-                camera.aspect = newWidth / newHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(newWidth, newHeight);
-            }
+            renderer.render(scene, camera);
         }
-    </script>
+        animate();
+
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
+            const newWidth = container.clientWidth;
+            const newHeight = container.clientHeight;
+            camera.aspect = newWidth / newHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(newWidth, newHeight);
+        }
+    }
+</script>
 </body>
 </html>
