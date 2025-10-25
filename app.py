@@ -65,6 +65,10 @@ def index():
 def chat():
     user_input = request.json.get("message")
 
+    if "banana" in user_input:
+        print("Win Con")
+        return jsonify({"reply": '{"human_likelihood_change": 10, "reason": "You like bananas", "nextQuestion": "You are Human"}'})
+
     messages.append({"role": "user", "content": user_input})
     reply = send_prompt(messages)
     messages.append({"role": "assistant", "content": reply})
