@@ -31,14 +31,24 @@
             appendMessage("Chatbot", data.reply);
         }
 
-        function appendMessage(sender, text) {
-            const chatBox = document.getElementById("chat-box");
-            const msgDiv = document.createElement("div");
-            msgDiv.className = "message";
-            msgDiv.innerHTML = `<strong>${sender}:</strong> ${text}`;
-            chatBox.appendChild(msgDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
+    function appendMessage(sender, text) {
+        const chatBox = document.getElementById("chat-box");
+        const msgDiv = document.createElement("div");
+        msgDiv.className = "message";
+        chatBox.appendChild(msgDiv);
+
+        let i = 0;
+        const typeWriter = () => {
+            if (i < text.length) {
+                msgDiv.innerHTML = `<strong>${sender}:</strong> ${text.slice(0, i + 1)}`;
+                i++;
+                setTimeout(typeWriter, 20); // 20ms per character
+            }
+        };
+        typeWriter();
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
 
         document.getElementById("user-input").addEventListener("keypress", function(e) {
             if (e.key === "Enter") sendMessage();

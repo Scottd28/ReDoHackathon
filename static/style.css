@@ -1,17 +1,19 @@
 body {
-    font-family: Arial, sans-serif;
+    font-family: "Courier New", Courier, monospace;
+    background-color: #000000; /* black background */
+    color: #00FF00; /* bright green text */
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background: #f0f0f0;
+    margin: 0;
 }
 
 .chat-container {
-    width: 400px;
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    width: 500px;
+    background-color: #000000; /* same black background */
+    border: 2px solid #00FF00;
+    border-radius: 5px;
     display: flex;
     flex-direction: column;
     padding: 10px;
@@ -21,8 +23,9 @@ body {
     height: 400px;
     overflow-y: auto;
     margin-bottom: 10px;
-    border: 1px solid #ddd;
+    border: 1px solid #00FF00;
     padding: 5px;
+    white-space: pre-wrap; /* keeps text formatting */
 }
 
 .message {
@@ -33,4 +36,19 @@ body {
     flex: 1;
     padding: 8px;
     margin-right: 5px;
+    background-color: #000000;
+    color: #00FF00;
+    border: 1px solid #00FF00;
+}
+
+button {
+    background-color: #000000;
+    color: #00FF00;
+    border: 1px solid #00FF00;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #003300;
 }
