@@ -7,6 +7,9 @@
 </head>
 <body>
 
+<!-- ✅ THEME TOGGLE NOW AT TOP -->
+<button id="theme-toggle" class="top-toggle">Blue Mode</button>
+
 <div id="intro-screen">
     <p>Alert: Unknown signals detected on Mars. Explorers report alien activity near the Valles Marineris canyon.
     The research team is preparing for first contact protocols. Be cautious — signals are unpredictable and may contain intelligence.</p>
@@ -16,7 +19,6 @@
 <div id="chat-screen">
     <div id="chat-box"></div>
 
-    <!-- ✅ NEW HUMAN LIKELIHOOD BAR -->
     <div id="likelihood-container">
         <span>Human Likelihood:</span>
         <div id="likelihood-bar">
@@ -96,9 +98,17 @@
         });
     }
 
-    // Enter key sends message
     document.getElementById("user-input").addEventListener("keypress", function(e) {
         if (e.key === "Enter") sendMessage();
+    });
+
+    // ✅ Theme Toggle Script
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        document.body.classList.toggle("blue-theme");
+
+        const isBlue = document.body.classList.contains("blue-theme");
+        document.getElementById("theme-toggle").textContent =
+            isBlue ? "Green Mode" : "Blue Mode";
     });
 </script>
 

@@ -9,10 +9,36 @@ body {
     margin: 0;
 }
 
+/* ✅ DEFAULT GREEN THEME COLORS */
+:root {
+    --main-color: #00FF00;
+}
+
+body {
+    color: var(--main-color);
+}
+
+/* ✅ TOP RIGHT THEME TOGGLE */
+.top-toggle {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 999;
+    padding: 6px 12px;
+    background-color: black;
+    color: var(--main-color);
+    border: 1px solid var(--main-color);
+    cursor: pointer;
+}
+
+.top-toggle:hover {
+    background-color: #003300;
+}
+
 #intro-screen, #chat-screen {
     width: 600px;
     background-color: #000000;
-    border: 2px solid #00FF00;
+    border: 2px solid var(--main-color);
     border-radius: 5px;
     padding: 20px;
     display: flex;
@@ -27,7 +53,7 @@ body {
     flex: 1;
     overflow-y: auto;
     margin-bottom: 10px;
-    border: 1px solid #00FF00;
+    border: 1px solid var(--main-color);
     padding: 5px;
     white-space: pre-wrap;
 }
@@ -46,15 +72,15 @@ body {
     padding: 8px;
     margin-right: 5px;
     background-color: #000000;
-    color: #00FF00;
-    border: 1px solid #00FF00;
-    caret-color: #00FF00;
+    color: var(--main-color);
+    border: 1px solid var(--main-color);
+    caret-color: var(--main-color);
 }
 
 button {
     background-color: #000000;
-    color: #00FF00;
-    border: 1px solid #00FF00;
+    color: var(--main-color);
+    border: 1px solid var(--main-color);
     padding: 5px 10px;
     cursor: pointer;
 }
@@ -66,7 +92,7 @@ button:hover {
 .cursor {
     display: inline-block;
     width: 10px;
-    background-color: #00FF00;
+    background-color: var(--main-color);
     animation: blink 1s step-start infinite;
     margin-left: 2px;
 }
@@ -90,7 +116,7 @@ button:hover {
 #likelihood-bar {
     flex: 1;
     height: 20px;
-    border: 1px solid #00FF00;
+    border: 1px solid var(--main-color);
     background-color: black;
     position: relative;
 }
@@ -98,11 +124,20 @@ button:hover {
 #likelihood-fill {
     height: 100%;
     width: 0%;
-    background-color: #00FF00;
+    background-color: var(--main-color);
     transition: width 0.5s ease;
 }
 
 #likelihood-percent {
     width: 50px;
     text-align: right;
+}
+
+/* ✅ BLUE THEME OVERRIDES */
+body.blue-theme {
+    --main-color: #00B7FF;
+}
+
+body.blue-theme button:hover {
+    background-color: #003355;
 }
