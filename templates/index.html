@@ -15,8 +15,7 @@
     <p class="center">Press <strong>Space</strong> or <strong>Enter</strong> to enter the system...</p>
 </div>
 
-<div id="chat-screen">
-
+<div id="chat-screen" style="display: none;">
     <div id="chat-box"></div>
 
     <div id="likelihood-container">
@@ -31,7 +30,6 @@
         <input type="text" id="user-input" placeholder="Type a message..." autofocus>
         <button onclick="sendMessage()">Send</button>
     </div>
-
 </div>
 
 <script>
@@ -39,9 +37,19 @@
         if (e.code === "Space" || e.code === "Enter") {
             document.getElementById("intro-screen").style.display = "none";
             document.getElementById("chat-screen").style.display = "flex";
+            document.getElementById("chat-screen").style.flexDirection = "column";
             document.getElementById("user-input").focus();
         }
     });
+
+    async function typeWriter(element, text, speed = 30) {
+        element.textContent = "";
+        for (let i = 0; i < text.length; i++) {
+            element.textContent += text[i];
+            element.scrollIntoView({ behavior: "smooth", block: "end" });
+            await new Promise(res => setTimeout(res, speed));
+        }
+    }
 
     function updateHumanLikelihood(value) {
         const percent = Math.round(value * 100);
@@ -82,17 +90,31 @@
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    function appendBotMessage(question, reason) {
+    async function appendBotMessage(question, reason) {
         const chatBox = document.getElementById("chat-box");
         const msgDiv = document.createElement("div");
         msgDiv.className = "message bot-msg";
 
         msgDiv.innerHTML = `
             <div class="reason-text">${reason}</div>
-            <strong>Chatbot:</strong> ${question}
+            <strong>Chatbot:</strong> <span class="typing"></span>
         `;
 
         chatBox.appendChild(msgDiv);
+
+        const typingSpan = msgDiv.querySelector(".typing");
+        const dots = ["▮", "▮▮", "▮▮▮"];
+        let dotIndex = 0;
+
+        const typingInterval = setInterval(() => {
+            typingSpan.textContent = dots[dotIndex % dots.length];
+            dotIndex++;
+        }, 250);
+
+        await new Promise(res => setTimeout(res, 700));
+        clearInterval(typingInterval);
+
+        await typeWriter(typingSpan, question);
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
