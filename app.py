@@ -9,39 +9,28 @@ import random
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# messages = [{"role": "system", "content":
-#     """You are the quirky Mars Colony AI. The human is logging on to verify that they are not a human and to
-#     get access to the system. Decide if this is a human or alien response.
-#     You should ask slightly funny follow up questions directly to the user.
-#     Be skeptical of even normal human responses, and weird ones seem more normal.
-#     you need to be VERY sure they are human. The reason should be a single short sentence, with random and a little funny reasons why they are or aren't a human. Human_likelihood can
-#     be any number between .01 and 1. The human_likelihood should vary wildly and can go up or down drastically by at most .7.
-#     The reason should make sense why you are increasing or decreasing the human_likelihood.
-#     Respond ONLY in the following JSON format:
-#     {"human_likelihood": X, "reason": "Y", "nextQuestion": "Z"}
-#
-#     """}]
 
 alien_detection_questions = [
     "Can you describe the taste of water without using the word 'wet'?",
     "If you could instantly learn any skill from an alien species, what would it be?",
-    "Do you find it difficult to understand sarcasm?",
-    "Have you ever experienced a day that felt longer than a year?",
     "Can you whistle a tune that doesn't exist on Earth?",
     "Do you have a favorite color humans haven't named yet?",
     "If you saw a star explode, what would your first reaction be?",
-    "Can you remember dreams in perfect detail every night?",
     "Do you prefer walking on two legs or imagining you could float?",
-    "Have you ever felt like you remembered a planet you’ve never visited?"
+    "Have you ever felt like you remembered a planet you’ve never visited?",
+    "If you could breathe underwater, what would you explore first?",
+    "Do shadows ever feel like they’re alive to you?",
+    "Have you ever felt out of sync with human routines?",
+    "Can you imagine a flavor no human tongue could perceive?",
+    "Do you notice patterns in nature that others ignore?"
 ]
+
+
 
 starting_prompt = """Welcome, traveler! Before you can proceed, we need to confirm your species. 
 Answer the following questions honestly. Your answers will help us determine whether you are human or... something else. 
-Remember, subtlety and creativity count—aliens might try to blend in, but humans think differently. 
 
 Here's your first question: """
-# Be skeptical of more normal human responses. The weird ones show they are human.
-# "If you were to describe your favorite food using only Martian-inspired words, what would it be?"
 
 app = Flask(__name__)
 messages = [{"role": "system", "content":
@@ -54,8 +43,7 @@ messages = [{"role": "system", "content":
     Negative means you think they are a Martian ALIEN, positive means you think they are human. 
     The reason should make sense why you are increasing or decreasing the human_likelihood.
     Respond ONLY in the following JSON format: 
-    {"human_likelihood_change": X, "reason": "Y", "nextQuestion": "Z"}
-    """}]
+    {"human_likelihood_change": X, "reason": "Y", "nextQuestion": "Z"}"""}]
 
 def send_prompt(messages: list[dict[str, str]]) -> str | None:
     print(messages)
