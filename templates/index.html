@@ -36,6 +36,25 @@
 
 <script>
     var Percentage = .20;
+
+    window.addEventListener("load", async () => {
+    try {
+        const response = await fetch("/start", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: ""
+        });
+
+        const data = await response.json();
+        // If your server returns JSON, data.reply may already be an object
+        const botData = data.reply; // or JSON.parse(data.reply) if it's a string
+
+        updateHumanLikelihood(0);
+        appendBotMessage(botData.nextQuestion, "");
+    } catch (err) {
+        console.error("Failed to load first question:", err);
+    }
+});
     // Intro screen -> chat screen transition
     document.addEventListener("keydown", function (e) {
         if (e.code === "Space" || e.code === "Enter") {
